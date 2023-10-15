@@ -23,7 +23,7 @@ This is where Ergo Poor Man's Wallet (EPMW) comes into play. The vision of EPMW 
 
 ## FAQ
 - Q: Does this mean you have stopped working on your own wallet?
-  A: No, I have not. The purpose of EPMW is to serve as an initial catalyst for developers across the Ergo community, providing them with a starting point to create their own wallets or extend EPMW's firmware. While I continue to work on my more advanced wallet project independently, developers have access to a "demo" project with simple hardware that they can easily assemble in their living room (for a ridiculous low price in comparison with other options). I hope it will gain traction, and others will contribute to EPMW or create spin-off projects.
+- A: No, I have not. The purpose of EPMW is to serve as an initial catalyst for developers across the Ergo community, providing them with a starting point to create their own wallets or extend EPMW's firmware. While I continue to work on my more advanced wallet project independently, developers have access to a "demo" project with simple hardware that they can easily assemble in their living room (for a ridiculous low price in comparison with other options). I hope it will gain traction, and others will contribute to EPMW or create spin-off projects.
 
 ## Current state
 TODO
