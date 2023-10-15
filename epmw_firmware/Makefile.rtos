@@ -1,0 +1,2 @@
+TGT_CFLAGS	+= -I./external_libs/rtos -I.
+TGT_CXXFLAGS	+= -I./external_libs/rtos -I.
