@@ -26,4 +26,21 @@ This is where Ergo Poor Man's Wallet (EPMW) comes into play. The vision of EPMW 
 - A: No, I have not. The purpose of EPMW is to serve as an initial catalyst for developers across the Ergo community, providing them with a starting point to create their own wallets or extend EPMW's firmware. While I continue to work on my more advanced wallet project independently, developers have access to a "demo" project with simple hardware that they can easily assemble in their living room (for a ridiculous low price in comparison with other options). I hope it will gain traction, and others will contribute to EPMW or create spin-off projects.
 
 ## Current state
-TODO
+State after the hackathon:
+
+### Currently working:
+- UART like communication with PC via built-in USB
+- OLED display
+- Buttons
+- Ergo related cryptography (xpub generation, address generation, ergo schnorr signing).
+- Wallet pretends to be initialized and use hardcoded mnemonic to derive the wallet's xpub from it, which is shown on the OLED display (QR code works when scanned by any compatible wallet such as Ergo Mobile Wallet in xpub import mode and the xpub is equal to the xpub derived from the same mnemonic in the other wallets software (Nautilus, Ergo mobile wallet))
+- Build tools
+
+### Has to be implemented:
+- Entropy gathering from both user taps (there are already prepared push button interrupts for this usecase)
+- Entropy from phase noise between precise xtal oscilator (on bluepill pcb) vs non-precise RC oscilator (built-in)
+- Wallet initialization procedure - generation of private key, showing user mnemonic seed
+- Communication protocol between PC and HW wallet
+- Python client for desktop which will be crafting transactions and sending them to be signed to HW device
+- Ergo transaction parsing within the device (to show user which transaction is he going to sign)
+

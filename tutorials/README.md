@@ -10,8 +10,20 @@ Total price when purchasing on Aliexpress approx. 10$ including shipping to Euro
 - microusb or usbc cable (depending on the connector of the bluepill board - there are multiple variants which differ only in the conenctor used on their pcb) (this item is free assuming you have some microusb/usbc cables lying around)
 
 ## Hardware connections
-TODO
+Display:
+```
+Display VCC <--> 3V3
+Display SDA <--> PB11
+Display SCL <--> PB10
+Display GND <--> GND
+```
+Buttons:
+```
+LEFT_BUTTON_FIRST_LEG <--> PB0
+LEFT_BUTTON_SECOND_LEG <--> GND
+RIGHT_BUTTON_FIRST_LEG <--> PB1
+RIGHT_BUTTON_SECOND_LEG <--> GND
+```
 
 ## Software requirements
-TODO (for firmware build)
-TODO (for python)
+For the information about required software, please see following directories (this text will be updated in the future)
