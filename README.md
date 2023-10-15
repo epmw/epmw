@@ -3,7 +3,7 @@
 ## About project
 The Ergo Poors Man's Wallet (EPMW) project is a simple, DIY, low-cost hardware wallet for Ergo cryptocurrency, which was created during ErgoHackVII hackathon from the Ergo Hackathon series in October 2023. The wallet is designed to be affordable, with a total cost of around $10, including shipping cost of components to Europe.
 
-## Motivation
+## Motivation
 While hardware wallets are the safest option for storing cryptocurrency, there has been always lack of hardware wallet options within the Ergo ecosystem. 
 
 The integration of Ergo's necessary functionalities into Ledger hardware wallet firmware took almost a year, and as far as I am aware, it is still only available in some development mode. Additionally, Ledger is not open source or open hardware (as per my knowledge).
