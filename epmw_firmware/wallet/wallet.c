@@ -1,4 +1,3 @@
-#include <stdio.h> //todo refactor without stdio (taking too much space !!!)
 #include <string.h>
 
 #include "external_libs/pbkdf2-hmac-sha512.h"
@@ -12,7 +11,16 @@
 //for now ignore passphrase but to the future I will be happy if all ergo wallets will support passphrase B-)
 const char *salt = "mnemonic";
 
-#include "../display.h"
+static char hex_nibble_to_char(const uint8_t nibble){
+	if(nibble > 0x0F) return 'X'; //fail in case of wrong argument value
+	return (nibble < 0x0A) ? ('0' + nibble) : ('A' + (nibble - 0x0A));
+}
+
+static void convert_uint8_t_into_hex_chars(const uint8_t byte, char *output){
+	output[0] = hex_nibble_to_char((byte >> 4) & 0x0F);
+	output[1] = hex_nibble_to_char(byte & 0x0F);
+	output[2] = 0x00;
+}
 
 uint8_t wallet_xpub_from_mnemonic(char *xpub_buffer, const char *mnemonic){
 	uint8_t out[64];
@@ -50,12 +58,12 @@ uint8_t wallet_xpub_from_mnemonic(char *xpub_buffer, const char *mnemonic){
 	char *c = &(xpub_buffer[strlen(xpub_prefix)]);
 
 	for(uint8_t i=0; i<32; ++i){
-		sprintf(c, "%02X", chain_code[i]);
+		convert_uint8_t_into_hex_chars(chain_code[i], c);
 		c += 2;
 	}
 
 	for(uint8_t i=0; i<33; ++i){
-		sprintf(c, "%02X", pub[i]);
+		convert_uint8_t_into_hex_chars(pub[i], c);
 		c += 2;
 	}
 
@@ -187,12 +195,12 @@ uint8_t wallet_ergo_schnorr_sign(char *signed_msg_buffer, const uint8_t *msg, ui
 	char *c = &(signed_msg[0]);
 
 	for(uint8_t i=0; i<24; ++i){
-		sprintf(c, "%02x", c_hash[i]);
+		convert_uint8_t_into_hex_chars(c_hash[i], c);
 		c += 2;
 	}
 
 	for(uint8_t i=0; i<32; ++i){
-		sprintf(c, "%02x", z[i]);
+		convert_uint8_t_into_hex_chars(z[i], c);
 		c += 2;
 	}
 
