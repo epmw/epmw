@@ -2,6 +2,7 @@
 #include <task.h>
 
 #include "ui.h"
+#include "ui_icons.h"
 #include "buttons.h"
 #include "display.h"
 #include "qr_show.h"
@@ -34,6 +35,27 @@ static void wait_for_any_button_press(){
 	}
 }
 
+//todo define also starting pixel location (x,y)
+//todo check also whether provided icon has correct size - add size parameter!!!
+static void print_icon_to_display(const uint8_t width, const uint8_t height, const uint8_t *icon){
+
+	uint16_t index = 0;
+	uint8_t current_bit = 0;
+
+	for(uint8_t i=0; i<height; ++i){
+
+		for(uint8_t j=0; j<width; ++j){
+
+			display_set_pixel(j, i, icon[index] & (1 << (7 - (current_bit++))));
+
+			if(current_bit >= 8){
+				current_bit = 0;
+				++index;
+			}
+		}
+	}
+}
+
 static void ui_wallet_initialization(){
 	display_clear();
 	display_puts(0, 0, "Wallet is not");
@@ -55,6 +77,11 @@ static void ui_wallet_initialization(){
 }
 
 void ui_task(void *params){
+
+	display_clear();
+	print_icon_to_display(128, 64, epmw_startup_screen_icon);
+	display_buffer_display();
+	vTaskDelay(2000 / portTICK_PERIOD_MS);
 
 	display_clear();
 	display_puts(0, 0, "Ergo Poor Man's ");
