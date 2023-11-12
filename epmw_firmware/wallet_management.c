@@ -5,11 +5,11 @@ static uint8_t wallet_manager_initialized = 0;
 static wallet_data_t wallet_data;
 
 static inline void wallet_management_load_from_flash(){
-	flash_load_data(&wallet_data, sizeof(wallet_data));	
+	flash_load_data((uint8_t *)&wallet_data, sizeof(wallet_data));	
 }
 
 static inline void wallet_management_save_to_flash(){
-	flash_save_data(&wallet_data, sizeof(wallet_data));
+	flash_save_data((uint8_t *)&wallet_data, sizeof(wallet_data));
 }
 
 void wallet_management_init(){

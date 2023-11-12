@@ -157,7 +157,7 @@ static inline uint8_t replace_bits(
 	return original;
 }
 
-void display_putc(const uint8_t x, const uint8_t y, const char c){
+static void display_putc_select_inversion(const uint8_t x, const uint8_t y, const char c, const uint8_t inverted){
 	if(x > 120 || y > 56) return;
 
 	if(y % 8){
@@ -166,30 +166,65 @@ void display_putc(const uint8_t x, const uint8_t y, const char c){
 		lower_bits = y % 8;
 		for(uint8_t i=0; i<8; ++i){
 			display_buffer[(y/8) * 128 + x + i] = replace_bits(
-				0, upper_bits, display_buffer[(y/8) * 128 + x + i], font_bytes[c*8+i]
+				0, upper_bits, display_buffer[(y/8) * 128 + x + i],
+				(inverted ? (~font_bytes[c*8+i]) : font_bytes[c*8+i])
 			);
 			display_buffer[((y/8)+1) * 128 + x + i] = replace_bits(
-				1, lower_bits, display_buffer[((y/8)+1) * 128 + x + i], font_bytes[c*8+i]
+				1, lower_bits, display_buffer[((y/8)+1) * 128 + x + i],
+				(inverted ? (~font_bytes[c*8+i]) : font_bytes[c*8+i])
 			);
 		}
 	}else{
-		memcpy(&(display_buffer[(y / 8) * 128 + x]), &(font_bytes[c*8]), 8);
+		if(inverted){
+			uint8_t buffer[8];
+			for(uint8_t i=0; i<8; ++i) buffer[i] = ~(font_bytes[c*8+i]);
+			memcpy(&(display_buffer[(y / 8) * 128 + x]), buffer, 8);
+		}else{
+			memcpy(&(display_buffer[(y / 8) * 128 + x]), &(font_bytes[c*8]), 8);
+		}
 	}
 }
 
-void display_puts(const uint8_t x, const uint8_t y, const char *str){
+static void display_puts_select_inversion(const uint8_t x, const uint8_t y, const char *str, const uint8_t inverted){
 	char c;
 	uint8_t tmp_x = x;
 	while((c = (*(str++)))){
-		display_putc(tmp_x, y, c);
+		display_putc_select_inversion(tmp_x, y, c, inverted);
 		tmp_x += 8;
 	}
 	display_buffer_display();//todo
 }
 
+void display_putc(const uint8_t x, const uint8_t y, const char c){
+	return display_putc_select_inversion(x, y, c, 0);
+}
+
+void display_putc_inverted(const uint8_t x, const uint8_t y, const char c){
+	return display_putc_select_inversion(x, y, c, 1);
+}
+
+void display_puts(const uint8_t x, const uint8_t y, const char *str){
+	return display_puts_select_inversion(x, y, str, 0);
+}
+
+void display_puts_inverted(const uint8_t x, const uint8_t y, const char *str){
+	return display_puts_select_inversion(x, y, str, 1);
+}
+
 void display_set_pixel(const uint8_t x, const uint8_t y, const uint8_t value){
+	if(x >= 128 || y >= 64) return;
 	display_buffer[(y/8)*128+x] &=~(1 << (0 + (y % 8)));
 	if(value) display_buffer[(y/8)*128+x] |= (1 << (0 + (y % 8)));
+}
+
+void display_draw_hline(const uint8_t sx, const uint8_t y, const uint8_t ex, const uint8_t fill_value){
+	if(sx >= 128 || ex >= 128 || y >= 64 || ex < sx) return;
+	for(uint8_t i=sx; i<=ex; ++i) display_set_pixel(i, y, fill_value);
+}
+
+void display_draw_vline(const uint8_t x, const uint8_t sy, const uint8_t ey, const uint8_t fill_value){
+	if(x >= 128 || sy >= 64 || ey >= 64 || ey < sy) return;
+	for(uint8_t i=sy; i<=ey; ++i) display_set_pixel(x, i, fill_value);
 }
 
 void display_manage_sleep_mode(const uint8_t sleep){
@@ -216,6 +251,29 @@ void display_buffer_display(){
 
 		ssd1306_i2c_send(0x40);
 		for(uint8_t x = 0; x < 128; ++x){
+			ssd1306_i2c_send(display_buffer[pg*128+x]);
+		}
+		ssd1306_i2c_stop();
+	}
+}
+
+// todo fix function bellow
+void display_buffer_display_selection(const uint8_t sx, const uint8_t sy, const uint8_t ex, const uint8_t ey){
+	if(sx >= 128 || ex >= 128 || sy >= 64 || ey >= 64 || sx > ex || sy > ey) return;
+	for(uint8_t pg = sy/8; pg < ey/8+1; ++pg){
+		ssd1306_i2c_start(DISPLAY_I2C_ADDR);
+
+		ssd1306_i2c_send(0x00);
+		ssd1306_i2c_send(0xB0 + pg);
+		
+		ssd1306_i2c_send(0x02);
+		ssd1306_i2c_send(0x10);
+
+		ssd1306_i2c_stop();
+		ssd1306_i2c_start(DISPLAY_I2C_ADDR);
+
+		ssd1306_i2c_send(0x40);
+		for(uint8_t x = sx; x <= ex; ++x){
 			ssd1306_i2c_send(display_buffer[pg*128+x]);
 		}
 		ssd1306_i2c_stop();
