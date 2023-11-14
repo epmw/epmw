@@ -175,7 +175,7 @@ void ui_task(void *params){
 	display_clear();
 	print_icon_to_display(128, 64, epmw_startup_screen_icon);
 	display_buffer_display();
-	ui_startup_screen_progress_bar_animation(0);
+	ui_startup_screen_progress_bar_animation(2000);
 
 	//Currently commented so we can mock the wallet initialized state
 	if(!wallet_is_initialized()){

@@ -11,7 +11,15 @@
 
 #include "font.h"
 
-static uint8_t display_buffer[128*8] = {0};
+static volatile uint8_t display_buffer[128*8] = {0};
+
+typedef struct{
+	uint8_t pages;
+} display_dirty_bit_like_cache_t;
+
+static volatile display_dirty_bit_like_cache_t dirty_bit_like_cache = {
+	.pages = 0
+};
 
 #define _IF_SB(i2c) ((I2C_SR1(i2c) & I2C_SR1_SB) == 0)
 #define _IF_BTF(i2c) ((I2C_SR1(i2c) & I2C_SR1_BTF) == 0)
@@ -32,8 +40,8 @@ static void ssd1306_i2c_stop(void) {
   while (_IF_BTF(DISPLAY_I2C));
 }
 
-static void ssd1306_i2c_send(uint8_t spec) {
-  i2c_send_data(DISPLAY_I2C, spec);
+static void ssd1306_i2c_send(const uint8_t data) {
+  i2c_send_data(DISPLAY_I2C, data);
   while (_IF_TxE(DISPLAY_I2C));
 }
 
@@ -144,6 +152,18 @@ void display_init(){
 	display_clear();
 }
 
+static inline void invalidate_dirty_bit_like_cache(const uint8_t page){
+	dirty_bit_like_cache.pages |= (1 << page);
+}
+
+static inline invalidate_dirty_bit_like_cache_all_pages(){
+	dirty_bit_like_cache.pages = (uint8_t)(((uint16_t)1 << (sizeof(dirty_bit_like_cache.pages)*8)) - 1);
+}
+
+static inline void reset_dirty_bit_like_cache(){
+	dirty_bit_like_cache.pages = 0;
+}
+
 static inline uint8_t replace_bits(
 	const uint8_t save_to_upper_part, const uint8_t amount, uint8_t original, const uint8_t replacement
 ){
@@ -174,6 +194,8 @@ static void display_putc_select_inversion(const uint8_t x, const uint8_t y, cons
 				(inverted ? (~font_bytes[c*8+i]) : font_bytes[c*8+i])
 			);
 		}
+		invalidate_dirty_bit_like_cache(y/8);
+		invalidate_dirty_bit_like_cache((y/8)+1);
 	}else{
 		if(inverted){
 			uint8_t buffer[8];
@@ -182,6 +204,7 @@ static void display_putc_select_inversion(const uint8_t x, const uint8_t y, cons
 		}else{
 			memcpy(&(display_buffer[(y / 8) * 128 + x]), &(font_bytes[c*8]), 8);
 		}
+		invalidate_dirty_bit_like_cache(y/8);
 	}
 }
 
@@ -215,6 +238,7 @@ void display_set_pixel(const uint8_t x, const uint8_t y, const uint8_t value){
 	if(x >= 128 || y >= 64) return;
 	display_buffer[(y/8)*128+x] &=~(1 << (0 + (y % 8)));
 	if(value) display_buffer[(y/8)*128+x] |= (1 << (0 + (y % 8)));
+	invalidate_dirty_bit_like_cache(y/8);
 }
 
 void display_draw_hline(const uint8_t sx, const uint8_t y, const uint8_t ex, const uint8_t fill_value){
@@ -237,7 +261,11 @@ void display_manage_sleep_mode(const uint8_t sleep){
 }
 
 void display_buffer_display(){
+
 	for(uint8_t pg = 0; pg < 8; ++pg){
+
+		if(!(dirty_bit_like_cache.pages & (1 << pg))) continue;
+
 		ssd1306_i2c_start(DISPLAY_I2C_ADDR);
 
 		ssd1306_i2c_send(0x00);
@@ -250,11 +278,14 @@ void display_buffer_display(){
 		ssd1306_i2c_start(DISPLAY_I2C_ADDR);
 
 		ssd1306_i2c_send(0x40);
+
 		for(uint8_t x = 0; x < 128; ++x){
 			ssd1306_i2c_send(display_buffer[pg*128+x]);
 		}
+
 		ssd1306_i2c_stop();
 	}
+	reset_dirty_bit_like_cache();
 }
 
 // todo fix function bellow
@@ -282,5 +313,6 @@ void display_buffer_display_selection(const uint8_t sx, const uint8_t sy, const 
 
 void display_clear(){
 	memset(display_buffer, 0x00, sizeof(display_buffer));
+	invalidate_dirty_bit_like_cache_all_pages();
 	display_buffer_display();
 }
