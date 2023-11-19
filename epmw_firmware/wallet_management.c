@@ -13,6 +13,8 @@ static inline void wallet_management_save_to_flash(){
 }
 
 void wallet_management_init(){
+	//todo - separate wallet data to init flag and private key parts
+	//load private key into SRAM only when needed
 	wallet_management_load_from_flash();
 	wallet_manager_initialized = 1;
 }

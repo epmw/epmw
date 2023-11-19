@@ -21,7 +21,7 @@
 
 MEMORY
 {
-	rom (rx) : ORIGIN = 0x08000000, LENGTH = 64K
+	rom (rx) : ORIGIN = 0x08000000, LENGTH = 63K /* (last page from 64-1kB pages is reserved as data storage) */
 	ram (rwx) : ORIGIN = 0x20000000, LENGTH = 20K
 }
 

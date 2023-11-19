@@ -124,7 +124,6 @@ void ui_task(void *params){
 	display_buffer_display();
 	ui_startup_screen_progress_bar_animation(2000);
 
-	//Currently commented so we can mock the wallet initialized state
 	if(!wallet_is_initialized()){
 		ui_wallet_initialization();
 	}

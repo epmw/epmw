@@ -2,7 +2,7 @@
 #define FLASH_STORAGE_H
 
 //use last page in flash to store data
-#define FLASH_STORAGE_ADDRESS ((uint32_t)0x08010000)
+#define FLASH_STORAGE_ADDRESS ((uint32_t)0x0800FC00)
 
 void flash_save_data(const uint8_t *data, const uint8_t data_size);
 
