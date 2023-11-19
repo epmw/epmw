@@ -1,7 +1,7 @@
 #include <string.h>
 
 #include "ui_button.h"
-#include "../display.h"
+#include "../../display.h"
 
 uint8_t ui_button_init_button(
 	ui_button_t *button,

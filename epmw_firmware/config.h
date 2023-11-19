@@ -6,4 +6,7 @@
 //or recover wallet from existing seed
 #define TEST_MNEMONIC "try cook habit comfort jump tissue transfer jar people brown best slogan pigeon earn awful"
 
+#define PIN_CODE_MIN_LENGTH 4
+#define PIN_CODE_MAX_LENGTH 8
+
 #endif
