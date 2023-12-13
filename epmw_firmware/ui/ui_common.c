@@ -66,3 +66,31 @@ void ui_print_icon_to_display(const uint8_t width, const uint8_t height, const u
 		}
 	}
 }
+
+uint8_t ui_count_lines_in_string(const char *str){
+	uint8_t count = 1;
+	char c;
+	while((c = (*(str++))) != 0x00){
+		if(c == '\n') ++count;
+	}
+	return count;
+}
+
+uint8_t ui_get_length_of_line_in_string(const char *str, const uint8_t line_idx){
+	uint8_t length = 0, current_line_idx = 0;
+	char c;
+	while((c = (*(str++))) != 0x00){
+		if(c == '\n'){
+			++current_line_idx;
+			continue;
+		}
+		if(current_line_idx == line_idx){
+			++length;
+			continue;
+		}
+		if(current_line_idx > line_idx){
+			break;
+		}
+	}
+	return length;	
+}

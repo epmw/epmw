@@ -92,6 +92,7 @@ static void ui_wallet_initialization(){
 	display_buffer_display();
 
 	ui_wait_for_any_button_press();
+	ui_wait_until_all_buttons_are_released();
 
 	ui_new_wallet_new_or_restore_selection();
 

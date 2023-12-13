@@ -156,7 +156,7 @@ static inline void invalidate_dirty_bit_like_cache(const uint8_t page){
 	dirty_bit_like_cache.pages |= (1 << page);
 }
 
-static inline invalidate_dirty_bit_like_cache_all_pages(){
+static inline void invalidate_dirty_bit_like_cache_all_pages(){
 	dirty_bit_like_cache.pages = (uint8_t)(((uint16_t)1 << (sizeof(dirty_bit_like_cache.pages)*8)) - 1);
 }
 
@@ -211,8 +211,14 @@ static void display_putc_select_inversion(const uint8_t x, const uint8_t y, cons
 static void display_puts_select_inversion(const uint8_t x, const uint8_t y, const char *str, const uint8_t inverted){
 	char c;
 	uint8_t tmp_x = x;
+	uint8_t tmp_y = y;
 	while((c = (*(str++)))){
-		display_putc_select_inversion(tmp_x, y, c, inverted);
+		if(c == '\n'){
+			tmp_x = x;
+			tmp_y += 8;
+			continue;
+		}
+		display_putc_select_inversion(tmp_x, tmp_y, c, inverted);
 		tmp_x += 8;
 	}
 	display_buffer_display();//todo

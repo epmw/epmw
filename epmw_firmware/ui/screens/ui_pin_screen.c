@@ -5,20 +5,21 @@
 #include "../../buttons.h"
 
 #include "ui_pin_screen.h"
+#include "ui_select_from_options_screen.h"
 #include "../ui_common.h"
 #include "../components/ui_button.h"
 
 typedef struct{
-	ui_button_t keys[9];
+	ui_button_t keys[10];
 	//todo comment the usecase
-	uint8_t assigned_values[9];
+	uint8_t assigned_values[10];
 } ui_pin_key_pad_t;
 
 //todo fix me
 static uint8_t pseudo_random(){
 
 	static uint8_t i = 0;
-	i = ((++i) > 8) ? 0 : i;
+	i = ((++i) > 9) ? 0 : i;
 
 	switch(i){
 		case 0: return 9;
@@ -30,6 +31,30 @@ static uint8_t pseudo_random(){
 		case 6: return 6;
 		case 7: return 4;
 		case 8: return 8;
+		case 9: return 5;
+		default: break;
+	}
+
+	return 0;
+}
+
+//todo fix me
+static uint8_t pseudo_random2(){
+
+	static uint8_t i = 0;
+	i = ((++i) > 9) ? 0 : i;
+
+	switch(i){
+		case 0: return 7;
+		case 1: return 1;
+		case 2: return 3;
+		case 3: return 9;
+		case 4: return 2;
+		case 5: return 8;
+		case 6: return 5;
+		case 7: return 4;
+		case 8: return 0;
+		case 9: return 6;
 		default: break;
 	}
 
@@ -38,6 +63,7 @@ static uint8_t pseudo_random(){
 
 //todo comment usecase
 static inline uint8_t get_x_for_key(const uint8_t idx){
+	if(idx == 9) return 44 + 1 * 13;
 	return 44 + (idx % 3) * 13;
 }
 
@@ -48,7 +74,7 @@ static inline uint8_t get_y_for_key(const uint8_t idx){
 
 static void init_pin_key_pad(ui_pin_key_pad_t *pin_key_pad){
 	//todo fix me...
-	for(uint8_t i=0; i<9; ++i){
+	for(uint8_t i=0; i<10; ++i){
 		pin_key_pad->assigned_values[i] = pseudo_random();
 		char text[2] = {'0' + pin_key_pad->assigned_values[i], 0x00};
 		ui_button_init_button(
@@ -63,6 +89,30 @@ static void init_pin_key_pad(ui_pin_key_pad_t *pin_key_pad){
 }
 
 void ui_enter_pin_screen(){
+
+	uint8_t pin_length_options_count = PIN_CODE_MAX_LENGTH - PIN_CODE_MIN_LENGTH + 1;
+	uint8_t pin_length_options[pin_length_options_count];
+
+	for(uint8_t i=0; i < pin_length_options_count; ++i){
+		pin_length_options[i] = PIN_CODE_MIN_LENGTH + i;
+	}
+
+	ui_uint8_t_options_t options_struct = {
+		.count_of_options = pin_length_options_count,
+		.options = pin_length_options
+	};
+
+	//temporary saved retrieved index into this variable
+	uint8_t selected_pin_length = ui_select_from_options_screen(
+		UI_OPTION_TYPE_UINT8_T, (void *)(&options_struct),
+		"Select pin code\nlength:"
+	);
+
+	if(selected_pin_length == UI_SELECT_FROM_OPTIONS_SCREEN_FAILURE_RETURN) return;
+
+	//fix variable value to fit its name
+	selected_pin_length = pin_length_options[selected_pin_length];
+
 	display_clear();
 	ui_pin_key_pad_t pin_key_pad;
 	display_puts(0, 0, "Pin: ");
@@ -81,7 +131,7 @@ void ui_enter_pin_screen(){
 		if(ui_wait_and_get_pressed_button() == LEFT_BUTTON){
 			ui_button_set_active_state(&left_btn, 1);
 			ui_button_set_active_state(&(pin_key_pad.keys[active_idx]), 0);
-			active_idx = ((++active_idx) > 8) ? 0 : active_idx;
+			active_idx = ((++active_idx) > 9) ? 0 : active_idx;
 			ui_button_set_active_state(&(pin_key_pad.keys[active_idx]), 1);
 			ui_wait_until_all_buttons_are_released();
 			ui_button_set_active_state(&left_btn, 0);
@@ -93,7 +143,7 @@ void ui_enter_pin_screen(){
 			++current_pin_idx;
 			ui_wait_until_all_buttons_are_released();
 			ui_button_set_active_state(&right_btn, 0);
-			if(current_pin_idx > (PIN_CODE_MAX_LENGTH-1)){
+			if(current_pin_idx > (selected_pin_length - 1)){
 				break;
 			}
 		}

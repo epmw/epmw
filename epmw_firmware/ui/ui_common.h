@@ -13,4 +13,8 @@ uint8_t ui_wait_and_get_pressed_button();
 
 void ui_print_icon_to_display(const uint8_t width, const uint8_t height, const uint8_t *icon);
 
+uint8_t ui_count_lines_in_string(const char *str);
+
+uint8_t ui_get_length_of_line_in_string(const char *str, const uint8_t line_idx);
+
 #endif
