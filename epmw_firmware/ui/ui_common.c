@@ -46,9 +46,14 @@ uint8_t ui_wait_and_get_pressed_button(){
 	return left_button_state ? LEFT_BUTTON : RIGHT_BUTTON;
 }
 
-//todo define also starting pixel location (x,y)
-//todo check also whether provided icon has correct size - add size parameter!!!
-void ui_print_icon_to_display(const uint8_t width, const uint8_t height, const uint8_t *icon){
+void ui_print_icon_to_display(
+	const uint8_t x, const uint8_t y,
+	const uint8_t width, const uint8_t height,
+	const uint16_t icon_size_pixels, const uint8_t *icon
+){
+
+	if(((uint16_t)width)*((uint16_t)height) > icon_size_pixels) return;
+	if((x + width > 128) || (y + height > 64)) return;
 
 	uint16_t index = 0;
 	uint8_t current_bit = 0;
@@ -57,7 +62,7 @@ void ui_print_icon_to_display(const uint8_t width, const uint8_t height, const u
 
 		for(uint8_t j=0; j<width; ++j){
 
-			display_set_pixel(j, i, icon[index] & (1 << (7 - (current_bit++))));
+			display_set_pixel(x+j, y+i, icon[index] & (1 << (7 - (current_bit++))));
 
 			if(current_bit >= 8){
 				current_bit = 0;

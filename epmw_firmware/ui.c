@@ -21,28 +21,6 @@ static void ui_new_wallet_new_wallet(){
 	display_buffer_display();
 	ui_wait_for_any_button_press();
 	ui_wait_until_all_buttons_are_released();
-
-	pin_code_t pin_code = ui_setup_pin_screen();
-
-	display_clear();
-	display_puts(0, 0, "After pin setup");
-	display_buffer_display();
-	ui_wait_for_any_button_press();
-	ui_wait_until_all_buttons_are_released();
-
-	pin_code_t pin_code_again = ui_enter_pin_screen();
-
-	display_clear();
-	display_puts(20, 20, "After pin");
-	display_buffer_display();
-	ui_wait_for_any_button_press();
-	ui_wait_until_all_buttons_are_released();
-
-	display_clear();
-	display_puts(0, 0, compare_pin_codes(pin_code, pin_code_again) ? "PIN MATCH" : "PIN DO NOT MATCH");
-	display_buffer_display();
-	ui_wait_for_any_button_press();
-	ui_wait_until_all_buttons_are_released();
 }
 
 static void ui_new_wallet_restore_wallet(){
@@ -93,6 +71,25 @@ static void ui_new_wallet_new_or_restore_selection(){
 	}else{
 		ui_new_wallet_new_wallet();
 	}
+
+	display_clear();
+
+	display_puts(0, 0, "Please, setup\nyour wallet's\npin code");
+	display_buffer_display();
+	ui_wait_for_any_button_press();
+	ui_wait_until_all_buttons_are_released();
+
+	pin_code_t pin_code = ui_setup_pin_screen();
+
+	wallet_management_set_pin_code(pin_code);
+
+	display_clear();
+	display_puts(0, 0, "Wallet's pin\ncode was\nsetuped\nsuccessfuly!");
+	display_buffer_display();
+	ui_wait_for_any_button_press();
+	ui_wait_until_all_buttons_are_released();
+
+	wallet_set_as_initialized();
 }
 
 static void ui_wallet_initialization(){
@@ -132,16 +129,164 @@ static void ui_startup_screen_progress_bar_animation(const uint16_t ms_duration)
 	}
 }
 
+static void ui_lock_screen(){
+
+	display_clear();
+
+	ui_print_icon_to_display(
+		48, 8,
+		32, 32,
+		sizeof(epmw_big_lock_32x32_icon) * 8, epmw_big_lock_32x32_icon
+	);
+
+	display_puts(0, 48, "Wallet is locked");
+	ui_wait_for_any_button_press();
+	ui_wait_until_all_buttons_are_released();
+
+	while(1){
+
+		pin_code_t pin_code = ui_enter_pin_screen();
+
+		uint8_t pin_failed_attempts = wallet_management_get_pin_failed_attempts();
+
+		if(pin_failed_attempts >= 16){
+			wallet_delete();
+			display_clear();
+			display_puts(0, 0, "All pin code\nattempts were\nexhausted!\n\nWallet was\ndeleted!");
+			while(1){
+				vTaskDelay(1000 / portTICK_PERIOD_MS);
+			}
+		}
+
+		uint16_t seconds_to_wait = 1 << pin_failed_attempts;
+
+		wallet_management_set_pin_failed_attempts(pin_failed_attempts+1);
+
+		display_clear();
+
+		display_puts(0, 0, "Please wait\n\nseconds");
+		
+		char tmp_bfr[6];
+
+		while(seconds_to_wait--){
+			ui_uint32_to_str(seconds_to_wait, tmp_bfr);
+			display_puts(0, 8, tmp_bfr);
+			display_buffer_display();
+			vTaskDelay(1000 / portTICK_PERIOD_MS);
+		}
+
+		display_clear();
+
+		display_puts(0, 0, "Checking pin...");
+		display_buffer_display();
+		vTaskDelay(500 / portTICK_PERIOD_MS);
+
+		if(wallet_management_check_pin_code(pin_code)){
+			display_clear();
+			display_puts(0, 0, "Wallet unlocked\nsuccessfuly!");
+			display_buffer_display();
+			wallet_management_set_pin_failed_attempts(0);
+			vTaskDelay(500 / portTICK_PERIOD_MS);
+			break;
+		}
+
+		display_clear();
+
+		display_puts(0, 0, "Pin code\ndo not match!\n\nPlease try again");
+		display_buffer_display();
+
+		ui_wait_for_any_button_press();
+		ui_wait_until_all_buttons_are_released();
+
+	}
+
+}
+
+static void ui_debug_wallet_delete(){
+
+	display_clear();
+
+	display_puts(0, 0, "DEBUG:\nDelete already\ninitialized\nwallet?");
+	display_buffer_display();
+
+	ui_button_t left_btn, right_btn;
+
+	ui_button_init_button(&left_btn, "NO", 30, 48);
+	ui_button_set_border_on(&left_btn, 1);
+	ui_button_init_button(&right_btn, "OK", 60, 48);
+	ui_button_set_border_on(&right_btn, 1);
+	
+	if(ui_wait_and_get_pressed_button() == LEFT_BUTTON){
+
+		ui_button_set_active_state(&left_btn, 1);
+		ui_wait_until_all_buttons_are_released();
+		ui_button_set_active_state(&left_btn, 0);
+		return;
+
+	}else{
+
+		ui_button_set_active_state(&right_btn, 1);
+		ui_wait_until_all_buttons_are_released();
+		ui_button_set_active_state(&right_btn, 0);
+
+		display_clear();
+		display_puts(0, 0, "Do you really\nwant to delete\nthe wallet?");
+		display_buffer_display();
+
+		ui_button_init_button(&left_btn, "NO", 30, 48);
+		ui_button_set_border_on(&left_btn, 1);
+		ui_button_init_button(&right_btn, "OK", 60, 48);
+		ui_button_set_border_on(&right_btn, 1);
+
+		if(ui_wait_and_get_pressed_button() == LEFT_BUTTON){
+
+			ui_button_set_active_state(&left_btn, 1);
+			ui_wait_until_all_buttons_are_released();
+			ui_button_set_active_state(&left_btn, 0);
+
+			return;
+
+		}else{
+
+			ui_button_set_active_state(&right_btn, 1);
+			ui_wait_until_all_buttons_are_released();
+			ui_button_set_active_state(&right_btn, 0);
+
+			wallet_delete();
+			display_clear();
+			display_puts(0, 0, "Wallet was\ndeleted\n\nPlease restart\nthe device!");
+			display_buffer_display();
+
+			while(1){
+				vTaskDelay(1000 / portTICK_PERIOD_MS);
+			}			
+
+		}
+
+	}
+}
+
 void ui_task(void *params){
 
 	display_clear();
-	ui_print_icon_to_display(128, 64, epmw_startup_screen_icon);
+
+	ui_print_icon_to_display(
+		0, 0,
+		128, 64,
+		sizeof(epmw_startup_screen_icon) * 8, epmw_startup_screen_icon
+	);
+
 	display_buffer_display();
+
 	ui_startup_screen_progress_bar_animation(2000);
 
 	if(!wallet_is_initialized()){
 		ui_wallet_initialization();
+	}else{
+		ui_debug_wallet_delete();
 	}
+
+	ui_lock_screen();
 
 	display_clear();
 	display_puts(0, 0, "Deriving xpub");
