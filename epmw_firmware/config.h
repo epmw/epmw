@@ -8,5 +8,6 @@
 
 #define PIN_CODE_MIN_LENGTH 4
 #define PIN_CODE_MAX_LENGTH 8
+#define PIN_CODE_MAX_RETRY_COUNT 16
 
 #endif

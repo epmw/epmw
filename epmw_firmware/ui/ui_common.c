@@ -20,6 +20,7 @@ void ui_uint32_to_str(uint32_t x, char *str){
 	while(index--){
 		*(str++) = buffer[index];
 	}
+	*str = 0x00;
 }
 
 void ui_wait_for_any_button_press(){

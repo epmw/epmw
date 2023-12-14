@@ -145,18 +145,9 @@ static void ui_lock_screen(){
 
 	while(1){
 
-		pin_code_t pin_code = ui_enter_pin_screen();
-
 		uint8_t pin_failed_attempts = wallet_management_get_pin_failed_attempts();
 
-		if(pin_failed_attempts >= 16){
-			wallet_delete();
-			display_clear();
-			display_puts(0, 0, "All pin code\nattempts were\nexhausted!\n\nWallet was\ndeleted!");
-			while(1){
-				vTaskDelay(1000 / portTICK_PERIOD_MS);
-			}
-		}
+		pin_code_t pin_code = ui_enter_pin_screen();
 
 		uint16_t seconds_to_wait = 1 << pin_failed_attempts;
 
@@ -168,11 +159,13 @@ static void ui_lock_screen(){
 		
 		char tmp_bfr[6];
 
-		while(seconds_to_wait--){
+		while(seconds_to_wait){
 			ui_uint32_to_str(seconds_to_wait, tmp_bfr);
+			display_puts(0, 8, "     ");
 			display_puts(0, 8, tmp_bfr);
 			display_buffer_display();
 			vTaskDelay(1000 / portTICK_PERIOD_MS);
+			--seconds_to_wait;
 		}
 
 		display_clear();
@@ -190,8 +183,16 @@ static void ui_lock_screen(){
 			break;
 		}
 
-		display_clear();
+		if(pin_failed_attempts >= PIN_CODE_MAX_RETRY_COUNT - 1){
+			wallet_delete();
+			display_clear();
+			display_puts(0, 0, "All pin code\nattempts were\nexhausted!\n\nWallet was\ndeleted!");
+			while(1){
+				vTaskDelay(1000 / portTICK_PERIOD_MS);
+			}
+		}
 
+		display_clear();
 		display_puts(0, 0, "Pin code\ndo not match!\n\nPlease try again");
 		display_buffer_display();
 
