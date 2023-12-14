@@ -88,8 +88,7 @@ static void init_pin_key_pad(ui_pin_key_pad_t *pin_key_pad){
 	ui_button_set_active_state(&(pin_key_pad->keys[0]), 1);
 }
 
-void ui_enter_pin_screen(){
-
+static uint8_t retrieve_pin_length_from_user(){
 	uint8_t pin_length_options_count = PIN_CODE_MAX_LENGTH - PIN_CODE_MIN_LENGTH + 1;
 	uint8_t pin_length_options[pin_length_options_count];
 
@@ -108,13 +107,20 @@ void ui_enter_pin_screen(){
 		"Select pin code\nlength:"
 	);
 
-	if(selected_pin_length == UI_SELECT_FROM_OPTIONS_SCREEN_FAILURE_RETURN) return;
+	if(selected_pin_length == UI_SELECT_FROM_OPTIONS_SCREEN_FAILURE_RETURN) return 0;
 
 	//fix variable value to fit its name
 	selected_pin_length = pin_length_options[selected_pin_length];
 
+	return selected_pin_length;
+}
+
+static uint8_t retrieve_pin_from_user(const uint8_t selected_pin_length, uint8_t *retrieved_pin){
+
 	display_clear();
+
 	ui_pin_key_pad_t pin_key_pad;
+
 	display_puts(0, 0, "Pin: ");
 	init_pin_key_pad(&pin_key_pad);
 
@@ -128,6 +134,7 @@ void ui_enter_pin_screen(){
 	uint8_t current_pin_idx = 0;
 
 	while(1){
+
 		if(ui_wait_and_get_pressed_button() == LEFT_BUTTON){
 			ui_button_set_active_state(&left_btn, 1);
 			ui_button_set_active_state(&(pin_key_pad.keys[active_idx]), 0);
@@ -135,9 +142,10 @@ void ui_enter_pin_screen(){
 			ui_button_set_active_state(&(pin_key_pad.keys[active_idx]), 1);
 			ui_wait_until_all_buttons_are_released();
 			ui_button_set_active_state(&left_btn, 0);
+
 		}else{
 			ui_button_set_active_state(&right_btn, 1);
-			//todo save entered digit
+			retrieved_pin[current_pin_idx] = pin_key_pad.assigned_values[active_idx];
 			char text[2] = {'0' + pin_key_pad.assigned_values[active_idx], 0x00};
 			display_puts(40 + current_pin_idx * 8, 0, text);
 			++current_pin_idx;
@@ -147,10 +155,74 @@ void ui_enter_pin_screen(){
 				break;
 			}
 		}
+
 	}
+
+	return selected_pin_length;
 }
 
-void ui_setup_pin_screen(){
+uint8_t compare_pin_codes(const pin_code_t pin_code, const pin_code_t pin_code_again){
+
+	if(pin_code.length != pin_code_again.length) return 0;
+
+	for(uint8_t i = 0; i < pin_code.length; ++i){
+		if(pin_code.code[i] != pin_code_again.code[i]) return 0;
+	}
+
+	return 1;
+}
+
+pin_code_t ui_enter_pin_screen(){
+
+	pin_code_t pin_code = {
+		.length = 0
+	};
+
+	pin_code.length = retrieve_pin_length_from_user();
+	if(!(pin_code.length)) return pin_code;
+
+	retrieve_pin_from_user(pin_code.length, pin_code.code);
+	return pin_code;
+}
+
+pin_code_t ui_setup_pin_screen(){
+
+	pin_code_t pin_code = {
+		.length = 0
+	};
+
+	pin_code.length = retrieve_pin_length_from_user();
+	if(!(pin_code.length)) return pin_code;	
+
+	pin_code_t pin_code_again = {
+		.length = pin_code.length
+	};
+
+	while(1){
+
+		retrieve_pin_from_user(pin_code.length, pin_code.code);
+
+		display_clear();
+
+		display_puts(0, 0, "Enter pin once\nagain\n\nPress any key\nto continue");
+		display_buffer_display();
+
+		ui_wait_for_any_button_press();
+		ui_wait_until_all_buttons_are_released();
+
+		retrieve_pin_from_user(pin_code_again.length, pin_code_again.code);
+
+		if(compare_pin_codes(pin_code, pin_code_again)) return pin_code;
+
+		display_clear();
+
+		display_puts(0, 0, "Entered pins\ndo not match!\n\nTry again!\nPress any key\nto continue");
+		display_buffer_display();
+
+		ui_wait_for_any_button_press();
+		ui_wait_until_all_buttons_are_released();
+
+	}
 
 }
 

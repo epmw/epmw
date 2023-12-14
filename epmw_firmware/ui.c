@@ -22,10 +22,24 @@ static void ui_new_wallet_new_wallet(){
 	ui_wait_for_any_button_press();
 	ui_wait_until_all_buttons_are_released();
 
-	ui_enter_pin_screen();
+	pin_code_t pin_code = ui_setup_pin_screen();
+
+	display_clear();
+	display_puts(0, 0, "After pin setup");
+	display_buffer_display();
+	ui_wait_for_any_button_press();
+	ui_wait_until_all_buttons_are_released();
+
+	pin_code_t pin_code_again = ui_enter_pin_screen();
 
 	display_clear();
 	display_puts(20, 20, "After pin");
+	display_buffer_display();
+	ui_wait_for_any_button_press();
+	ui_wait_until_all_buttons_are_released();
+
+	display_clear();
+	display_puts(0, 0, compare_pin_codes(pin_code, pin_code_again) ? "PIN MATCH" : "PIN DO NOT MATCH");
 	display_buffer_display();
 	ui_wait_for_any_button_press();
 	ui_wait_until_all_buttons_are_released();
