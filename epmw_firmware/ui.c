@@ -6,6 +6,8 @@
 #include "ui/components/ui_icons.h"
 #include "ui/components/ui_button.h"
 #include "ui/screens/ui_pin_screen.h"
+#include "ui/screens/ui_seed_enter_screen.h"
+
 #include "buttons.h"
 #include "display.h"
 #include "qr_show.h"
@@ -28,7 +30,9 @@ static void ui_new_wallet_restore_wallet(){
 	display_puts(20, 20, "TODO RESTORE");
 	display_buffer_display();
 	ui_wait_for_any_button_press();
-	ui_wait_until_all_buttons_are_released();	
+	ui_wait_until_all_buttons_are_released();
+
+	retrieve_seed_word_from_user();
 }
 
 static void ui_new_wallet_new_or_restore_selection(){

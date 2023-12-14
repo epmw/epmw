@@ -47,6 +47,21 @@ uint8_t ui_wait_and_get_pressed_button(){
 	return left_button_state ? LEFT_BUTTON : RIGHT_BUTTON;
 }
 
+uint8_t ui_wait_and_get_pressed_button_with_timeout(const uint16_t timeout_ms){
+	uint8_t left_button_state = 0;
+	uint8_t right_button_state = 0;
+	uint16_t time_elapsed = 0;
+	while(
+		(left_button_state = button_get_state(LEFT_BUTTON)) == 0 &&
+		(right_button_state = button_get_state(RIGHT_BUTTON)) == 0
+	){
+		vTaskDelay(10 / portTICK_PERIOD_MS);
+		time_elapsed += 10 + BUTTONS_DEBOUNCE_TIME_MS;
+		if(time_elapsed >= timeout_ms) return BUTTON_TIMEOUT;
+	}
+	return left_button_state ? LEFT_BUTTON : RIGHT_BUTTON;
+}
+
 void ui_print_icon_to_display(
 	const uint8_t x, const uint8_t y,
 	const uint8_t width, const uint8_t height,

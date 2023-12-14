@@ -12,7 +12,8 @@
 
 enum button_names {
 	LEFT_BUTTON,
-	RIGHT_BUTTON
+	RIGHT_BUTTON,
+	BUTTON_TIMEOUT
 };
 
 void buttons_init();

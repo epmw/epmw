@@ -11,6 +11,8 @@ void ui_wait_until_all_buttons_are_released();
 
 uint8_t ui_wait_and_get_pressed_button();
 
+uint8_t ui_wait_and_get_pressed_button_with_timeout(const uint16_t timeout_ms);
+
 void ui_print_icon_to_display(
 	const uint8_t x, const uint8_t y,
 	const uint8_t width, const uint8_t height,
