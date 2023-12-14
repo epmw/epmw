@@ -15,50 +15,16 @@ typedef struct{
 	uint8_t assigned_values[10];
 } ui_pin_key_pad_t;
 
-//todo fix me
+//todo fix me !!!
 static uint8_t pseudo_random(){
-
-	static uint8_t i = 0;
-	i = ((++i) > 9) ? 0 : i;
-
-	switch(i){
-		case 0: return 9;
-		case 1: return 0;
-		case 2: return 7;
-		case 3: return 3;
-		case 4: return 1;
-		case 5: return 2;
-		case 6: return 6;
-		case 7: return 4;
-		case 8: return 8;
-		case 9: return 5;
-		default: break;
+	static uint32_t state = 0;
+	uint8_t result;
+	while(1){
+		state = (1103515245 * state + 12345) % 0x100;
+		result = (uint8_t)(state & 0xFF);
+		if(result < 250) break;
 	}
-
-	return 0;
-}
-
-//todo fix me
-static uint8_t pseudo_random2(){
-
-	static uint8_t i = 0;
-	i = ((++i) > 9) ? 0 : i;
-
-	switch(i){
-		case 0: return 7;
-		case 1: return 1;
-		case 2: return 3;
-		case 3: return 9;
-		case 4: return 2;
-		case 5: return 8;
-		case 6: return 5;
-		case 7: return 4;
-		case 8: return 0;
-		case 9: return 6;
-		default: break;
-	}
-
-	return 0;
+	return result % 10;
 }
 
 //todo comment usecase
@@ -75,7 +41,20 @@ static inline uint8_t get_y_for_key(const uint8_t idx){
 static void init_pin_key_pad(ui_pin_key_pad_t *pin_key_pad){
 	//todo fix me...
 	for(uint8_t i=0; i<10; ++i){
-		pin_key_pad->assigned_values[i] = pseudo_random();
+		uint8_t choosen_value;
+		while(1){
+			choosen_value = pseudo_random();
+			uint8_t non_ok = 0;
+			for(uint8_t j=0; j<i; ++j){
+				if(pin_key_pad->assigned_values[j] == choosen_value){
+					non_ok = 1;
+					break;
+				}
+			}
+			if(non_ok) continue;
+			break;
+		}
+		pin_key_pad->assigned_values[i] = choosen_value;
 		char text[2] = {'0' + pin_key_pad->assigned_values[i], 0x00};
 		ui_button_init_button(
 			&(pin_key_pad->keys[i]),
