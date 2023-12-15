@@ -56,8 +56,8 @@ uint8_t ui_wait_and_get_pressed_button_with_timeout(const uint16_t timeout_ms){
 		(right_button_state = button_get_state(RIGHT_BUTTON)) == 0
 	){
 		vTaskDelay(10 / portTICK_PERIOD_MS);
-		time_elapsed += 10 + BUTTONS_DEBOUNCE_TIME_MS;
-		if(time_elapsed >= timeout_ms) return BUTTON_TIMEOUT;
+		time_elapsed += 10;
+		if((time_elapsed + BUTTONS_DEBOUNCE_TIME_MS) >= timeout_ms) return BUTTON_TIMEOUT;
 	}
 	return left_button_state ? LEFT_BUTTON : RIGHT_BUTTON;
 }
