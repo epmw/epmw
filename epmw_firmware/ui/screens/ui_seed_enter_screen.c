@@ -6,6 +6,8 @@
 #include "../../display.h"
 #include "../../buttons.h"
 
+#include "../../wallet/crypto/bip39.h"
+
 #include "ui_seed_enter_screen.h"
 #include "ui_select_from_options_screen.h"
 #include "../ui_common.h"
@@ -34,7 +36,7 @@ static inline uint8_t get_y_for_key(const uint8_t idx){
 	return 9 + (idx / 3) * 13;
 }
 
-static void render_seed_keyboard(ui_seed_keyboard_t *seed_keyboard){
+static void render_seed_keyboard(ui_seed_keyboard_t *seed_keyboard, const uint8_t active_idx){
 	for(uint8_t i=0; i<UI_SEED_KEYBOARD_KEYS_COUNT; ++i){
 
 		char text[4] = {
@@ -55,10 +57,13 @@ static void render_seed_keyboard(ui_seed_keyboard_t *seed_keyboard){
 
 	}
 
-	ui_button_set_active_state(&(seed_keyboard->keys[0]), 1);
+	ui_button_set_active_state(&(seed_keyboard->keys[active_idx]), 1);
 }
 
-static void init_seed_keyboard(ui_seed_keyboard_t *seed_keyboard){
+static void init_seed_keyboard(
+	ui_seed_keyboard_t *seed_keyboard,
+	const retrieve_string_based_info_funct_ptr_t get_enabled_chars
+){
 
 	memset(seed_keyboard, 0, sizeof(ui_seed_keyboard_t));
 
@@ -73,26 +78,19 @@ static void init_seed_keyboard(ui_seed_keyboard_t *seed_keyboard){
 		}
 	}
 
+	seed_keyboard->assigned_chars[UI_SEED_KEYBOARD_KEYS_COUNT-2][2] = '_';
+
 	seed_keyboard->assigned_chars[UI_SEED_KEYBOARD_KEYS_COUNT-1][0] = '<';
 	seed_keyboard->assigned_chars[UI_SEED_KEYBOARD_KEYS_COUNT-1][1] = '-';
 	seed_keyboard->assigned_chars[UI_SEED_KEYBOARD_KEYS_COUNT-1][2] = '-';
 
 	seed_keyboard->chars_enabled |= (7 << ((UI_SEED_KEYBOARD_KEYS_COUNT-1) * 3));
 
-	render_seed_keyboard(seed_keyboard);
+	if(get_enabled_chars){
+		seed_keyboard->chars_enabled = get_enabled_chars("");
+	}
 
-	//todo remove me
-	seed_keyboard->chars_enabled &=~ (uint32_t)(
-		((uint32_t)1 << ('b' - 'a')) |
-		((uint32_t)1 << ('x' - 'a')) |
-		((uint32_t)1 << ('q' - 'a')) |
-		((uint32_t)1 << ('p' - 'a')) |
-		((uint32_t)1 << ('s' - 'a')) |
-		((uint32_t)1 << ('y' - 'a')) |
-		((uint32_t)1 << ('z' - 'a')) 
-	);
-
-	render_seed_keyboard(seed_keyboard);
+	render_seed_keyboard(seed_keyboard, 0);
 }
 
 static char get_pressed_char(
@@ -126,14 +124,27 @@ static inline uint8_t ccwci(const uint8_t current_word_char_idx){
 }
 
 //todo remove all magic constants !!!
-uint16_t retrieve_seed_word_from_user(){
+//todo refactor this function for generic keyboard - it's already coded in generic way!!!
+static uint16_t retrieve_seed_word_from_user(
+	const uint8_t word_no,
+	const retrieve_string_based_info_funct_ptr_t get_enabled_chars,
+	const  retrieve_string_based_info_funct_ptr_t accept_string
+){
+
+	char loaded_text_buffer[UI_SEED_WORD_MAX_LENGTH+1] = {0};
+	uint8_t loaded_chars_count = 0;
 
 	display_clear();
 
 	ui_seed_keyboard_t seed_keyboard;
 
-	display_puts(0, 0, "Wrd(1):");
-	init_seed_keyboard(&seed_keyboard);
+	//reuse already alocated buffer for this purpose
+	strcpy(loaded_text_buffer, "Wrd(");
+	uint8_t word_no_str_len = ui_uint32_to_str(word_no, loaded_text_buffer + strlen("Wrd("));
+	strcpy(loaded_text_buffer + strlen("Wrd(") + word_no_str_len, "):");
+	display_puts(0, 0, loaded_text_buffer);
+
+	init_seed_keyboard(&seed_keyboard, get_enabled_chars);
 
 	ui_button_t left_btn, right_btn;
 	ui_button_init_button(&left_btn, "<>", 10, 49);
@@ -176,10 +187,10 @@ uint16_t retrieve_seed_word_from_user(){
 				if(idx_within_key_pad > 2) idx_within_key_pad = 0;
 
 				if(text[0] != ' '){
-					display_puts(7*8 + ccwci(current_word_char_idx) * 8, 0, text);
+					display_puts((6 + word_no_str_len) * 8 + ccwci(current_word_char_idx) * 8, 0, text);
 					display_draw_hline(
-						7*8 + ccwci(current_word_char_idx) * 8, 7,
-						7*8 + ccwci(current_word_char_idx) * 8 + 8, 1
+						(6 + word_no_str_len) * 8 + ccwci(current_word_char_idx) * 8, 7,
+						(6 + word_no_str_len) * 8 + ccwci(current_word_char_idx) * 8 + 8, 1
 					);
 				}
 
@@ -202,19 +213,40 @@ uint16_t retrieve_seed_word_from_user(){
 						case BUTTON_TIMEOUT:
 
 							display_draw_hline(
-								7*8 + ccwci(current_word_char_idx) * 8, 7,
-								7*8 + ccwci(current_word_char_idx) * 8 + 8, 0
+								(6 + word_no_str_len) * 8 + ccwci(current_word_char_idx) * 8, 7,
+								(6 + word_no_str_len) * 8 + ccwci(current_word_char_idx) * 8 + 8, 0
 							);
 							idx_within_key_pad = (idx_within_key_pad) ? (idx_within_key_pad - 1) : 2;
 							text[0] = get_pressed_char(&seed_keyboard, active_idx, idx_within_key_pad);
 
 							if(text[0] != ' '){
 								
-								display_puts(7*8 + ccwci(current_word_char_idx) * 8, 0, text);
-								display_buffer_display();
+								loaded_text_buffer[loaded_chars_count++] = text[0];
+								loaded_text_buffer[loaded_chars_count] = 0x00;
 								
+								if(text[0] != '_'){								
+									display_puts((6 + word_no_str_len) * 8 + ccwci(current_word_char_idx) * 8, 0, text);
+									display_buffer_display();
+								}	
+
 								if((++current_word_char_idx) > UI_SEED_WORD_MAX_LENGTH){
 									--current_word_char_idx;
+								}
+
+								if(get_enabled_chars){
+									seed_keyboard.chars_enabled = get_enabled_chars(loaded_text_buffer);
+									render_seed_keyboard(&seed_keyboard, active_idx);
+								}
+
+								if(accept_string){
+									if(accept_string(loaded_text_buffer)){
+										if(text[0] == '_'){
+											loaded_text_buffer[loaded_chars_count-1] = 0x00;
+											return new_bip39_get_index(loaded_text_buffer);
+										}else{
+											return new_bip39_hint_index(loaded_text_buffer);
+										}
+									}
 								}
 
 							}
@@ -233,10 +265,10 @@ uint16_t retrieve_seed_word_from_user(){
 					text[0] = get_pressed_char(&seed_keyboard, active_idx, idx_within_key_pad++);
 					
 					if(text[0] != ' '){
-						display_puts(7*8 + ccwci(current_word_char_idx) * 8, 0, text);
+						display_puts((6 + word_no_str_len) * 8 + ccwci(current_word_char_idx) * 8, 0, text);
 						display_draw_hline(
-							7*8 + ccwci(current_word_char_idx) * 8, 7,
-							7*8 + ccwci(current_word_char_idx) * 8 + 8, 1
+							(6 + word_no_str_len) * 8 + ccwci(current_word_char_idx) * 8, 7,
+							(6 + word_no_str_len) * 8 + ccwci(current_word_char_idx) * 8 + 8, 1
 						);
 					}
 
@@ -252,8 +284,16 @@ uint16_t retrieve_seed_word_from_user(){
 
 			//last key selected ("backspace")
 			}else{
+				if(loaded_chars_count){
+					--loaded_chars_count;
+					loaded_text_buffer[loaded_chars_count] = 0x00;
+				}
 				if(current_word_char_idx) --current_word_char_idx;
-				display_puts(7*8 + current_word_char_idx * 8, 0, " ");
+				display_puts((6 + word_no_str_len) * 8 + current_word_char_idx * 8, 0, " ");
+				if(get_enabled_chars){
+					seed_keyboard.chars_enabled = get_enabled_chars(loaded_text_buffer);
+					render_seed_keyboard(&seed_keyboard, active_idx);
+				}
 				ui_wait_until_all_buttons_are_released();
 				ui_button_set_active_state(&right_btn, 0);
 			}
@@ -262,4 +302,170 @@ uint16_t retrieve_seed_word_from_user(){
 	}
 
 	return 0;
+}
+
+static uint32_t get_next_possible_bip39_chars(const char *str){
+
+	uint8_t tmp_len = strlen(str);
+
+	//return whole alphabet without x, since there is not any word starting
+	//with x in the alphabet
+	if(!tmp_len){
+		return 0b00111011011111111111111111111111 & (~((uint32_t)1 << ('x' - 'a')));
+	}
+
+	uint32_t result = 0b00111000000000000000000000000000;
+	uint8_t n;
+	uint16_t wi;
+
+	if((wi = new_bip39_hint_index_n(str, &n)) == BIP39_INVALID_WORD_INDEX) return 0;
+
+	for(uint8_t i=0; i<n; ++i){
+		char c = bip39_get_word(wi+i)[tmp_len];
+		if(c){
+			result |= (1 << (c - 'a'));
+		}else{
+			result |= (1 << ('z' - 'a' + 1));
+		}
+	}
+
+	return result;
+}
+
+static uint32_t accept_bip39_word(const char *str){
+
+	uint8_t n;
+	uint16_t wi;
+
+	//this is needed for some special edges cases such as word "bar"
+	//since there are "bar" and also "barrel" in the BIP39 wordlist, keyboard
+	//hence return "bar_" to symbolize that the word "bar" was chosen
+	if(str[strlen(str)-1] == '_'){
+
+		if(strlen(str) > UI_SEED_WORD_MAX_LENGTH) return 0;
+
+		char buffer[UI_SEED_WORD_MAX_LENGTH + 1];
+		strcpy(buffer, str);
+
+		//remove '_' char from the end
+		buffer[strlen(buffer)-1] = 0x00;
+
+		if((wi = new_bip39_get_index(buffer)) == BIP39_INVALID_WORD_INDEX) return 0;
+		return 1;
+
+	}
+
+	if((wi = new_bip39_hint_index_n(str, &n)) == BIP39_INVALID_WORD_INDEX) return 0;
+	if(n != 1) return 0;
+
+	return 1;
+}
+
+static uint8_t retrieve_mnemonic_length_from_user(){
+
+	uint8_t mnemonic_length_options[] = VALID_MNEMONIC_LENGTHS;
+
+	ui_uint8_t_options_t options_struct = {
+		.count_of_options = sizeof(mnemonic_length_options) / sizeof(uint8_t),
+		.options = mnemonic_length_options
+	};
+
+	uint8_t wc_idx = ui_select_from_options_screen(
+		UI_OPTION_TYPE_UINT8_T, &options_struct, "Select count\nof seedwords:"
+	);
+
+	return mnemonic_length_options[wc_idx];
+}
+
+static char *get_nth_suffix(const uint8_t nth){
+	switch(nth){
+		case 1:
+			return "st";
+			break;
+		case 2:
+			return "nd";
+			break;
+		case 3:
+			return "rd";
+			break;
+		default: break;
+	}
+	return "th";
+}
+
+static uint8_t confirm_chosen_word(const uint8_t word_no, const uint16_t word){
+
+	display_clear();
+	display_puts(0, 0, "Please confirm\nthat ");
+	
+	char buffer[3];
+	uint8_t word_no_str_len = ui_uint32_to_str(word_no, buffer);
+	display_puts(8 * strlen("that "), 8, buffer);
+
+	display_puts(8 * (strlen("that ") + word_no_str_len), 8, get_nth_suffix(word_no));
+
+	display_puts(8 * (strlen("that ") + word_no_str_len + 2), 7, " word");
+
+	display_puts(0, 16, "is:\n");
+	display_puts(0, 24, bip39_get_word(word));
+
+	ui_button_t left_btn, right_btn;
+
+	ui_button_init_button(&left_btn, "<-", 10, 49);
+	ui_button_set_border_on(&left_btn, 1);
+	ui_button_init_button(&right_btn, "OK", 90, 49);
+	ui_button_set_border_on(&right_btn, 1);
+
+	if(ui_wait_and_get_pressed_button() == LEFT_BUTTON){
+		ui_button_set_active_state(&left_btn, 1);
+		ui_wait_until_all_buttons_are_released();
+		ui_button_set_active_state(&left_btn, 0);
+	}else{
+		ui_button_set_active_state(&right_btn, 1);
+		ui_wait_until_all_buttons_are_released();
+		ui_button_set_active_state(&right_btn, 0);
+		return 1;
+	}
+
+	return 0;
+}
+
+uint8_t ui_retrieve_mnemonic_seed_from_user(uint16_t *words){
+
+	while(1){
+
+		uint8_t wc = retrieve_mnemonic_length_from_user();
+
+		uint8_t loaded_wc = 0;
+
+		while(loaded_wc < wc){
+
+			words[loaded_wc] = retrieve_seed_word_from_user(
+				loaded_wc+1,
+				get_next_possible_bip39_chars,
+				accept_bip39_word
+			);
+
+			if(confirm_chosen_word(loaded_wc+1, words[loaded_wc])){
+				++loaded_wc;
+			}
+
+		}
+
+		if(bip39_validate_checksum(words, loaded_wc)){
+			break;
+		}
+
+		display_clear();
+		display_puts(
+			0, 0,
+			"Invalid mnemonic\nseed was typed\n\nPlease try again"
+		);
+		display_buffer_display();
+
+		ui_wait_for_any_button_press();
+		ui_wait_until_all_buttons_are_released();
+
+	}
+
 }

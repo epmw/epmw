@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-void ui_uint32_to_str(uint32_t x, char *str);
+uint8_t ui_uint32_to_str(uint32_t x, char *str);
 
 void ui_wait_for_any_button_press();
 

@@ -5,11 +5,12 @@
 
 #include "ui_common.h"
 
-void ui_uint32_to_str(uint32_t x, char *str){
+uint8_t ui_uint32_to_str(uint32_t x, char *str){
+	uint8_t converted_length = 0;
 	if(!x){
 		*(str++) = '0';
 		*str = 0x00;
-		return;
+		return 1;
 	}
 	char buffer[16];
 	uint8_t index = 0;
@@ -19,8 +20,10 @@ void ui_uint32_to_str(uint32_t x, char *str){
 	}
 	while(index--){
 		*(str++) = buffer[index];
+		++converted_length;
 	}
 	*str = 0x00;
+	return converted_length;
 }
 
 void ui_wait_for_any_button_press(){

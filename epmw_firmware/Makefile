@@ -5,6 +5,8 @@
 BINARY		= main
 SRCFILES	= main.c display.c font.c buttons.c qr_show.c flash_storage.c wallet_management.c ui.c entropy.c
 SRCFILES	+= wallet/wallet.c
+SRCFILES	+= wallet/crypto/bip39.c
+SRCFILES	+= wallet/crypto/external_libs/sha256.c
 SRCFILES	+= ui/ui_common.c
 SRCFILES	+= ui/components/ui_button.c
 SRCFILES	+= ui/screens/ui_pin_screen.c ui/screens/ui_select_from_options_screen.c ui/screens/ui_seed_enter_screen.c

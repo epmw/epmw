@@ -17,22 +17,30 @@
 #include "config.h"
 const char *test_mnemonic = TEST_MNEMONIC;
 
-static void ui_new_wallet_new_wallet(){
+static uint8_t ui_new_wallet_new_wallet(uint16_t *words){
 	display_clear();
-	display_puts(20, 20, "TODO NEW");
+	display_puts(
+		0, 0,
+		"TODO yet to be\nimplemented\n\nPlease restart\nEPMW and chose\ndifferent option"
+	);
 	display_buffer_display();
-	ui_wait_for_any_button_press();
-	ui_wait_until_all_buttons_are_released();
+	//keep yielding from this task
+	while(1){
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+	}
+	// ui_wait_for_any_button_press();
+	// ui_wait_until_all_buttons_are_released();
+	//todo fix me
+	return 0; //just for now so compiler will be happy
 }
 
-static void ui_new_wallet_restore_wallet(){
+static uint8_t ui_new_wallet_restore_wallet(uint16_t *words){
 	display_clear();
-	display_puts(20, 20, "TODO RESTORE");
+	display_puts(0, 0, "In order to\nrestore wallet,\nplease enter\nyour mnemonic\nseed (words).");
 	display_buffer_display();
 	ui_wait_for_any_button_press();
 	ui_wait_until_all_buttons_are_released();
-
-	retrieve_seed_word_from_user();
+	return ui_retrieve_mnemonic_seed_from_user(words);
 }
 
 static void ui_new_wallet_new_or_restore_selection(){
@@ -70,10 +78,15 @@ static void ui_new_wallet_new_or_restore_selection(){
 		break;
 	}
 
+	ui_wait_until_all_buttons_are_released();
+
+	uint16_t words[MNEMONIC_MAX_LENGTH];
+	uint8_t wc;
+
 	if(current_selection){
-		ui_new_wallet_restore_wallet();
+		wc = ui_new_wallet_restore_wallet(words);
 	}else{
-		ui_new_wallet_new_wallet();
+		wc = ui_new_wallet_new_wallet(words);
 	}
 
 	display_clear();
