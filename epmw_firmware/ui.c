@@ -12,10 +12,10 @@
 #include "display.h"
 #include "qr_show.h"
 #include "wallet/wallet.h"
+#include "wallet/crypto/bip39.h"
 #include "wallet_management.h"
 
 #include "config.h"
-const char *test_mnemonic = TEST_MNEMONIC;
 
 static uint8_t ui_new_wallet_new_wallet(uint16_t *words){
 	display_clear();
@@ -100,13 +100,16 @@ static void ui_new_wallet_new_or_restore_selection(){
 
 	wallet_management_set_pin_code(pin_code);
 
+	wallet_management_set_mnemonic_seed(wc, words);
+
+	wallet_set_as_initialized();
+
 	display_clear();
 	display_puts(0, 0, "Wallet's pin\ncode was\nsetuped\nsuccessfuly!");
 	display_buffer_display();
 	ui_wait_for_any_button_press();
 	ui_wait_until_all_buttons_are_released();
 
-	wallet_set_as_initialized();
 }
 
 static void ui_wallet_initialization(){
@@ -123,17 +126,6 @@ static void ui_wallet_initialization(){
 	ui_wait_until_all_buttons_are_released();
 
 	ui_new_wallet_new_or_restore_selection();
-
-	//todo pin selection...
-
-	/*
-	//todo show entropy state during entropy retrieval...
-	display_puts(0, 0, "Entropy:");
-	char buffer[17];
-	uint32_to_str(1234, buffer);
-	display_puts(0, 8, buffer);
-	display_buffer_display();
-	*/
 }
 
 static void ui_startup_screen_progress_bar_animation(const uint16_t ms_duration){
@@ -266,11 +258,12 @@ static void ui_debug_wallet_delete(){
 
 		}else{
 
+			wallet_delete();
+
 			ui_button_set_active_state(&right_btn, 1);
 			ui_wait_until_all_buttons_are_released();
 			ui_button_set_active_state(&right_btn, 0);
 
-			wallet_delete();
 			display_clear();
 			display_puts(0, 0, "Wallet was\ndeleted\n\nPlease restart\nthe device!");
 			display_buffer_display();
@@ -312,9 +305,17 @@ void ui_task(void *params){
 	display_puts(0, 16, "Please wait :)");
 	display_buffer_display();
 
+	uint8_t wc;
+	uint16_t *words; 
+	//plus one for space or the terminating nullbyte after last word
+	char mnemonic_seed[MNEMONIC_MAX_LENGTH * (BIP39_LONGEST_WORD_CHARS_COUNT + 1)];
+
+	wc = wallet_management_get_mnemonic_seed(&words);
+	bip39_words_to_string(words, wc, mnemonic_seed);
+
 	char xpub_buffer[157]; //todo remove "magic" from paranthesses number
 
-	wallet_xpub_from_mnemonic(xpub_buffer, test_mnemonic);
+	wallet_xpub_from_mnemonic(xpub_buffer, mnemonic_seed);
 
 	display_clear();
 	qr_show(xpub_buffer);

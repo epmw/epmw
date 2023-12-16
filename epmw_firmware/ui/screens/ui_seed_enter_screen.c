@@ -14,7 +14,6 @@
 #include "../components/ui_button.h"
 
 #define UI_SEED_KEYBOARD_KEYS_COUNT 10
-#define UI_SEED_WORD_MAX_LENGTH 8
 #define UI_SEED_TIME_TO_NEXT_CHAR_MS 450
 
 typedef struct{
@@ -120,7 +119,7 @@ static char get_pressed_char(
 
 //todo comment this ccwci - clamp_current_word_char_idx
 static inline uint8_t ccwci(const uint8_t current_word_char_idx){
-	return (current_word_char_idx >= UI_SEED_WORD_MAX_LENGTH) ? (current_word_char_idx - 1)  : current_word_char_idx;
+	return (current_word_char_idx >= BIP39_LONGEST_WORD_CHARS_COUNT) ? (current_word_char_idx - 1)  : current_word_char_idx;
 }
 
 //todo remove all magic constants !!!
@@ -131,7 +130,7 @@ static uint16_t retrieve_seed_word_from_user(
 	const  retrieve_string_based_info_funct_ptr_t accept_string
 ){
 
-	char loaded_text_buffer[UI_SEED_WORD_MAX_LENGTH+1] = {0};
+	char loaded_text_buffer[BIP39_LONGEST_WORD_CHARS_COUNT+1] = {0};
 	uint8_t loaded_chars_count = 0;
 
 	display_clear();
@@ -229,7 +228,7 @@ static uint16_t retrieve_seed_word_from_user(
 									display_buffer_display();
 								}	
 
-								if((++current_word_char_idx) > UI_SEED_WORD_MAX_LENGTH){
+								if((++current_word_char_idx) > BIP39_LONGEST_WORD_CHARS_COUNT){
 									--current_word_char_idx;
 								}
 
@@ -342,9 +341,9 @@ static uint32_t accept_bip39_word(const char *str){
 	//hence return "bar_" to symbolize that the word "bar" was chosen
 	if(str[strlen(str)-1] == '_'){
 
-		if(strlen(str) > UI_SEED_WORD_MAX_LENGTH) return 0;
+		if(strlen(str) > BIP39_LONGEST_WORD_CHARS_COUNT) return 0;
 
-		char buffer[UI_SEED_WORD_MAX_LENGTH + 1];
+		char buffer[BIP39_LONGEST_WORD_CHARS_COUNT + 1];
 		strcpy(buffer, str);
 
 		//remove '_' char from the end
@@ -395,6 +394,7 @@ static char *get_nth_suffix(const uint8_t nth){
 
 static uint8_t confirm_chosen_word(const uint8_t word_no, const uint16_t word){
 
+
 	display_clear();
 	display_puts(0, 0, "Please confirm\nthat ");
 	
@@ -408,6 +408,16 @@ static uint8_t confirm_chosen_word(const uint8_t word_no, const uint16_t word){
 
 	display_puts(0, 16, "is:\n");
 	display_puts(0, 24, bip39_get_word(word));
+
+	//display the confimation message
+	display_buffer_display();
+
+	//wait on purpose to let the user realise that the screen was changed and he should
+	//stop fastly pressing buttons in case he was pressing buttons since he was expecting
+	//to enter another char of current word, but the wallet find out that currently entered
+	//characters were enough to find the typed in word
+	vTaskDelay(500 / portTICK_PERIOD_MS);
+	ui_wait_until_all_buttons_are_released();
 
 	ui_button_t left_btn, right_btn;
 
@@ -453,7 +463,7 @@ uint8_t ui_retrieve_mnemonic_seed_from_user(uint16_t *words){
 		}
 
 		if(bip39_validate_checksum(words, loaded_wc)){
-			break;
+			return loaded_wc;
 		}
 
 		display_clear();
@@ -468,4 +478,5 @@ uint8_t ui_retrieve_mnemonic_seed_from_user(uint16_t *words){
 
 	}
 
+	return 0;
 }

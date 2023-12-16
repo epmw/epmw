@@ -33,11 +33,19 @@ void wallet_set_as_initialized(){
 	wallet_set_initialized_state(1);
 }
 
-void wallet_management_set_private_key(const uint8_t *private_key){
-	for(uint8_t i=0; i<32; ++i){
-		wallet_data.private_key[i] = private_key[i];
+void wallet_management_set_mnemonic_seed(const uint8_t wc, const uint16_t *words){
+	if(wc % 3) return; //invalid words count
+	wallet_data.wc = wc;
+	for(uint8_t i=0; i<wc; ++i){
+		wallet_data.words[i] = words[i];
 	}
 	wallet_management_save_to_flash();
+}
+
+uint8_t wallet_management_get_mnemonic_seed(uint16_t **words){
+	if(!wallet_is_initialized()) return 0;
+	*words = wallet_data.words;
+	return wallet_data.wc;
 }
 
 uint8_t wallet_management_check_pin_code(const pin_code_t pin_code){
@@ -60,11 +68,12 @@ void wallet_management_set_pin_failed_attempts(const uint8_t pin_failed_attempts
 }
 
 void wallet_delete(){
-	for(uint8_t i=0; i<32; ++i){
-		wallet_data.private_key[i] = 0;
+	for(uint8_t i = 0; i < MNEMONIC_MAX_LENGTH; ++i){
+		wallet_data.words[i] = 0;
 	}
+	wallet_data.wc = 0;
 	wallet_data.pin_code.length = 0;
-	for(uint8_t i=0; i < PIN_CODE_MAX_LENGTH; ++i){
+	for(uint8_t i = 0; i < PIN_CODE_MAX_LENGTH; ++i){
 		wallet_data.pin_code.code[i] = 0;
 	}
 	wallet_set_initialized_state(0);
